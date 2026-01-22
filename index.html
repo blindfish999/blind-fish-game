@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Blind Fish - Focus Start</title>
+
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fredoka+One&display=swap');
+
+body { margin:0; background:#0b1a23; display:flex; justify-content:center; align-items:center; height:100vh; font-family:'Fredoka One',cursive; overflow:hidden; }
+#game-container { position:relative; width:100vw; height:100vh; max-width:500px; max-height:900px; background:#1a4e7a; overflow:hidden; box-shadow:0 0 50px rgba(0,0,0,0.5);}
+canvas{width:100%; height:100%; display:block;}
+
+#score{
+    position:absolute;
+    top:30px;
+    width:100%;
+    text-align:center;
+    color:white;
+    font-size:50px;
+    z-index:10;
+    pointer-events:none;
+    text-shadow:3px 3px 0 #000;
+    display:none;
+}
+
+#highscore{
+    position:absolute;
+    top:85px;
+    width:100%;
+    text-align:center;
+    color:#ffca3a;
+    font-size:22px;
+    z-index:10;
+    pointer-events:none;
+    text-shadow:2px 2px 0 #000;
+    display:none;
+}
+
+#overlay{position:absolute; inset:0; background:rgba(11,26,35,0.85); display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:100;}
+h1{font-size:55px;color:#ffca3a;margin:0 0 20px 0;text-shadow:4px 4px 0 #d35400;}
+
+.swim-btn{
+    background:linear-gradient(#ff9100,#ff6a00);
+    border:4px solid #cc5500;
+    padding:20px 70px;
+    font-size:40px;
+    border-radius:20px;
+    color:white;
+    cursor:pointer;
+    box-shadow:0 10px 0 #913d00;
+    margin-bottom:30px;
+}
+
+.settings-btn{
+    width:60px;height:60px;border-radius:50%;
+    background:#555;border:4px solid #333;
+    display:flex; justify-content:center; align-items:center;
+    cursor:pointer; box-shadow:0 6px 0 #222;
+}
+
+.settings-btn svg{width:30px;height:30px; fill:white;}
+
+#ready-msg{
+    position:absolute;
+    top:60%;
+    width:100%;
+    text-align:center;
+    color:#ffca3a;
+    font-size:35px;
+    text-shadow:3px 3px 0 #000;
+    display:none;
+    animation:pulse 1s infinite;
+    pointer-events:none;
+}
+
+@keyframes pulse{
+    0%{transform:scale(1);}
+    50%{transform:scale(1.1);}
+    100%{transform:scale(1);}
+}
+
+#settings-panel{
+    display:none;
+    position:absolute;
+    inset:0;
+    background:rgba(11,26,35,0.9);
+    z-index:200;
+    justify-content:center;
+    align-items:center;
+}
+
+.settings-box{
+    background:#2c3e50;
+    border:5px solid #ffca3a;
+    border-radius:25px;
+    padding:30px;
+    text-align:center;
+    color:white;
+    min-width:260px;
+}
+
+.setting-row{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-top:25px;
+    font-size:22px;
+}
+
+.switch{position:relative; display:inline-block; width:70px; height:36px;}
+.switch input{opacity:0;width:0;height:0;}
+.slider{position:absolute; inset:0; background-color:#e74c3c; border-radius:36px; transition:0.3s;}
+.slider:before{content:""; position:absolute; height:28px; width:28px; left:4px; bottom:4px; background-color:white; border-radius:50%; transition:0.3s;}
+input:checked + .slider{background-color:#2ecc71;}
+input:checked + .slider:before{transform:translateX(34px);}
+
+.close-btn{
+    margin-top:30px;
+    padding:10px 30px;
+    background:#ffca3a;
+    border:none;
+    border-radius:14px;
+    cursor:pointer;
+    font-family:'Fredoka One';
+}
+
+#overlay.fade-out{animation:swimFade 0.6s ease forwards;}
+@keyframes swimFade{from{opacity:1;}to{opacity:0;}}
+
+/* 🔴 GAME OVER PANEL */
+#gameover-panel{
+    position:absolute;
+    inset:0;
+    background:rgba(11,26,35,0.9);
+    z-index:300;
+    display:none;
+    flex-direction:column;
+    justify-content:center;
+    align-items:center;
+    text-align:center;
+    animation:fadeInGameOver 0.5s ease forwards;
+}
+
+@keyframes fadeInGameOver{
+    from{opacity:0; transform:scale(1.05);}
+    to{opacity:1; transform:scale(1);}
+}
+
+#gameover-panel h2{
+    font-size:50px;
+    color:#ff4d4d;
+    margin-bottom:10px;
+    text-shadow:4px 4px 0 #000;
+}
+
+#gameover-panel .new-highscore{
+    font-size:28px;
+    color:#ffca3a;
+    margin-bottom:25px;
+    text-shadow:2px 2px 0 #000;
+}
+
+.try-btn{
+    background:linear-gradient(#2ecc71,#27ae60);
+    border:4px solid #1e8449;
+    padding:16px 60px;
+    font-size:32px;
+    border-radius:18px;
+    color:white;
+    cursor:pointer;
+    box-shadow:0 8px 0 #145a32;
+    font-family:'Fredoka One';
+}
+
+/* 🔴 GAME OVER X BUTTON */
+.close-gameover{
+    position:absolute;
+    top:20px;
+    right:20px;
+    background:#ff4d4d;
+    border:none;
+    color:white;
+    font-size:28px;
+    font-weight:bold;
+    border-radius:50%;
+    width:50px;
+    height:50px;
+    cursor:pointer;
+    box-shadow:0 5px 0 #b31c1c;
+    z-index:310;
+}
+</style>
+</head>
+
+<body>
+<div id="game-container">
+
+<div id="score">0</div>
+<div id="highscore">Highscore: 0</div>
+<div id="ready-msg">Swim fishie, SWIM!!!</div>
+
+<canvas id="gameCanvas"></canvas>
+
+<div id="overlay">
+    <h1>BLIND FISH</h1>
+    <img src="https://i.imgur.com/3aDWuEv.png" width="130" style="margin-bottom:30px">
+    <button class="swim-btn" onclick="preStart()">SWIM</button>
+    <div class="settings-btn" onclick="openSettings()">
+        <svg viewBox="0 0 24 24"><path d="M19.14,12.94c0.04-0.3,0.06-0.61,0.06-0.94s-0.02-0.64-0.07-0.94l2.03-1.58-2.4-4.16-2.39.96c-.49-.38-1.03-.7-1.62-.94l-.36-2.54h-4.8l-.36,2.54c-.59.24-1.13.56-1.62.94l-2.39-.96-2.4,4.16 2.03,1.58c-.05.3-.07.62-.07.94s.02.64.07.94l-2.03,1.58 2.4,4.16 2.39-.96c.49.38 1.03.7 1.62.94l.36,2.54h4.8l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96 2.4-4.16-2.03-1.58z"/></svg>
+    </div>
+</div>
+
+<div id="settings-panel">
+    <div class="settings-box">
+        <h2>SETTINGS</h2>
+        <div class="setting-row">
+            <span>Sound</span>
+            <label class="switch">
+                <input type="checkbox" id="sound-toggle" checked>
+                <span class="slider"></span>
+            </label>
+        </div>
+        <button class="close-btn" onclick="eraseHighscore()">Erase Highscore</button>
+        <button class="close-btn" onclick="closeSettings()">CLOSE</button>
+    </div>
+</div>
+
+<div id="gameover-panel">
+    <button class="close-gameover" onclick="closeGameOver()">✕</button>
+    <h2>GAME OVER</h2>
+    <div class="new-highscore" id="new-highscore-msg" style="display:none;"></div>
+    <button class="try-btn" onclick="retryGame()">Try again</button>
+</div>
+
+</div>
+
+<script>
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
+const scoreEl = document.getElementById('score');
+const highScoreEl = document.getElementById('highscore');
+const overlay = document.getElementById('overlay');
+const readyMsg = document.getElementById('ready-msg');
+const soundToggle = document.getElementById('sound-toggle');
+const gameOverPanel = document.getElementById('gameover-panel');
+const newHighscoreMsg = document.getElementById('new-highscore-msg');
+
+const GAME_W=400, GAME_H=700;
+canvas.width = GAME_W; canvas.height = GAME_H;
+
+const assets={fish:new Image(),pipe:new Image()};
+assets.fish.src="https://i.imgur.com/3aDWuEv.png";
+assets.pipe.src="https://i.imgur.com/o3s94ip.png";
+
+// AUDIO (direct links via Dropbox)
+const pointSound=new Audio("https://dl.dropboxusercontent.com/s/0a58ksn34puac7xrwh8xk/punt.mp3");
+const deathSound=new Audio("https://dl.dropboxusercontent.com/s/a3lab18f39zpcxsa16f35/Gameover.mp3");
+const highScoreSound=new Audio("https://dl.dropboxusercontent.com/s/8vdw9rtoagogylzao2qek/highscore.mp3");
+
+// GAME VARS
+let fish={x:80,y:350,w:100,h:80,vel:0,rot:0};
+let pipes=[];
+let score=0;
+let gameActive=false;
+let isReady=false;
+let currentPipeSpeed=1.8;
+let highScore=parseInt(localStorage.getItem("highScore"))||0;
+let newHighScoreAchieved=false;
+
+// FLOATING EFFECT VARS
+let floatOffset=0;
+let floatDir=1;
+
+// OVERLIJDENSANIMATIE VARS
+let isDying=false;
+let deathTimer=0;
+
+highScoreEl.innerText="Highscore: "+highScore;
+
+function spawnPipe(){
+    const gap=240;
+    const center=Math.random()*(GAME_H-340)+170;
+    pipes.push({x:GAME_W+80,top:center-gap/2,bottom:center+gap/2,w:130,passed:false});
+}
+
+function loop(){
+    let gradient = ctx.createLinearGradient(0, 0, 0, GAME_H);
+    gradient.addColorStop(0, "#4fc3f7");
+    gradient.addColorStop(1, "#0b3d91");
+    ctx.fillStyle = gradient;
+    ctx.fillRect(0,0,GAME_W,GAME_H);
+
+    if(isReady && !gameActive){
+        floatOffset += 0.2 * floatDir;
+        if(Math.abs(floatOffset) > 5) floatDir*=-1;
+    }
+
+    if(gameActive){
+        fish.vel+=0.15;
+        fish.y+=fish.vel;
+        fish.rot=Math.min(Math.max(fish.vel*0.1,-0.4),0.5);
+
+        if(pipes.length===0||pipes[pipes.length-1].x<GAME_W-280) spawnPipe();
+
+        pipes.forEach(p=>{
+            p.x-=currentPipeSpeed;
+            ctx.save();
+            ctx.translate(p.x+p.w/2,p.top);
+            ctx.scale(1,-1);
+            ctx.drawImage(assets.pipe,-p.w/2,0,p.w,1000);
+            ctx.restore();
+            ctx.drawImage(assets.pipe,p.x,p.bottom,p.w,1000);
+
+            const hx=fish.x-(fish.w*0.25);
+            const hy=fish.y-(fish.h*0.25);
+            const hw=fish.w*0.5;
+            const hh=fish.h*0.5;
+
+            if(hx+hw>p.x && hx<p.x+p.w){
+                if(hy<p.top || hy+hh>p.bottom) triggerGameOver();
+            }
+
+            if(!p.passed && p.x+p.w<fish.x){
+                p.passed=true;
+                score++;
+                scoreEl.innerText=score;
+                if(soundToggle.checked){pointSound.currentTime=0;pointSound.play();}
+
+                if(score > highScore){
+                    highScore = score;
+                    localStorage.setItem("highScore", highScore);
+                    newHighScoreAchieved = true;
+                    highScoreEl.innerText = "Highscore: " + highScore; // update in-game
+                }
+
+                if(score % 50 === 0){
+                    currentPipeSpeed += 0.2;
+                }
+            }
+        });
+
+        if(fish.y+fish.h/2>GAME_H||fish.y<-50) triggerGameOver();
+        pipes=pipes.filter(p=>p.x>-200);
+    }
+
+    if(isDying){
+        fish.vel+=0.25;
+        fish.y+=fish.vel;
+        fish.rot+=0.05;
+        deathTimer++;
+        if(deathTimer>20){
+            gameOverPanel.style.display='flex';
+            isDying=false;
+
+            if(newHighScoreAchieved){
+                if(soundToggle.checked){highScoreSound.currentTime=0;highScoreSound.play();}
+                newHighscoreMsg.style.display='block';
+                newHighscoreMsg.innerText = `New Highscore!\n${highScore}`;
+                newHighScoreAchieved=false;
+            } else {
+                newHighscoreMsg.style.display='none';
+            }
+        }
+    }
+
+    ctx.save();
+    ctx.translate(fish.x,fish.y+(isReady && !gameActive ? floatOffset : 0));
+    ctx.rotate(fish.rot);
+    ctx.drawImage(assets.fish,-fish.w/2,-fish.h/2,fish.w,fish.h);
+    ctx.restore();
+
+    requestAnimationFrame(loop);
+}
+
+function preStart(){
+    overlay.classList.add('fade-out');
+    setTimeout(()=>{
+        overlay.style.display='none';
+        overlay.classList.remove('fade-out');
+        isReady = true;
+        score = 0;
+        pipes = [];
+        fish.y = 350;
+        fish.vel = 0;
+        fish.rot = 0;
+        currentPipeSpeed = 1.8;
+        newHighScoreAchieved = false;
+        newHighscoreMsg.style.display = 'none';
+        setTimeout(()=>{
+            if(isReady && !gameActive) readyMsg.style.display='block';
+        }, 1000);
+    }, 600);
+}
+
+function startGame(){
+    if(!isReady||gameActive)return;
+    isReady=false;
+    gameActive=true;
+    readyMsg.style.display='none';
+    scoreEl.style.display='block';
+    highScoreEl.style.display='block';
+    scoreEl.innerText="0";
+    jump();
+}
+
+function triggerGameOver(){
+    if(isDying) return;
+    gameActive=false;
+    isReady=false;
+    isDying=true;
+    deathTimer=0;
+    readyMsg.style.display='none';
+    scoreEl.style.display='none';
+    highScoreEl.style.display='none';
+    if(soundToggle.checked){deathSound.currentTime=0;deathSound.play();}
+}
+
+function jump(){
+    if(gameActive) fish.vel=-3.8;
+    else if(isReady) startGame();
+    if(soundToggle.checked){jumpSound.currentTime=0;jumpSound.play();}
+}
+
+function retryGame(){
+    gameOverPanel.style.display='none';
+    preStart();
+}
+
+function closeGameOver(){
+    gameOverPanel.style.display='none';
+    overlay.style.display='flex';
+}
+
+function eraseHighscore() {
+    highScore = 0;
+    localStorage.setItem("highScore", highScore);
+    highScoreEl.innerText = "Highscore: " + highScore;
+    newHighScoreAchieved = false;
+}
+
+window.onkeydown=e=>{if(e.code==="Space")jump();}
+canvas.onmousedown=e=>{e.preventDefault();jump();}
+canvas.ontouchstart=e=>{e.preventDefault();jump();}
+
+function openSettings(){document.getElementById('settings-panel').style.display='flex';}
+function closeSettings(){document.getElementById('settings-panel').style.display='none';}
+
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
